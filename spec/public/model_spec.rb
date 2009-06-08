@@ -31,6 +31,25 @@ describe DataMapper::Model do
 
     it { @article_model.should respond_to(:copy) }
 
+    describe '#override!' do
+      before :each do
+        @model = @article_model.dup # prevend side effect
+      end
+
+      it 'should raise an exception when attemping override an internal method' do
+        lambda{
+          @model.send(:define_method, :reset, &lambda{})
+        }.should(raise_error(DataMapper::ReservedError))
+      end
+
+      it 'should just override the internal method if #override! is called' do
+        msg = 'this is overrided'
+        @model.override!(:reload)
+        @model.send(:define_method, :reload, &lambda{msg})
+        @model.new.reload.should == msg
+      end
+    end
+
     describe '#copy' do
       with_alternate_adapter do
         describe 'between identical models' do

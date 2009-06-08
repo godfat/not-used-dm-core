@@ -467,5 +467,27 @@ describe DataMapper::Property do
         it 'uses tracking strategy from type'
       end
     end
+
+    describe '#property' do
+      before :each do
+        @track = ::Track.dup # prevend side effect
+      end
+
+      describe 'name conflict with internal method' do
+        it 'raise an exception by default' do
+          lambda{
+            @track.property(:reset, String)
+          }.should(raise_error(DataMapper::ReservedError))
+        end
+
+        it 'just override it if #override! is called' do
+          @track.override!(:reload)
+          lambda{
+            @track.property(:reload, String)
+          }.should_not(raise_error(DataMapper::ReservedError))
+        end
+      end
+    end
+
   end
 end # DataMapper::Property
