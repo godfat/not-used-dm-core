@@ -134,6 +134,10 @@ module DataMapper
 
   class PluginNotFoundError < StandardError; end
 
+  # Raised on attempt to override internal method in Resource and
+  # Model and other friends. use Model#override! to force override.
+  class ReservedError < StandardError; end
+
   # Raised on attempt to operate on collection of child objects
   # when parent object is not yet saved.
   # For instance, if your article object is not saved,

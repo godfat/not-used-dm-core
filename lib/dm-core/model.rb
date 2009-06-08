@@ -333,6 +333,54 @@ module DataMapper
     end
 
     ##
+    # Return all overridable internal methods, in Symbol and Regexp.
+    #
+    # @return [Array]
+    #   array containing the overridable internal methods.
+    #   all Regexp(es) match consider overridable.
+    #
+    # @api public
+    def override
+      @override ||= [/^hookable_/, /^__hooks_/]
+    end
+
+    ##
+    # Add a internal method that consider overridable.
+    #
+    # @param [Symbol, Regexp]
+    #
+    # @return [Array]
+    #   the newly updated array from #override
+    #
+    # @see #override
+    #
+    # @api public
+    def override! method
+      assert_kind_of('method', method, Symbol, Regexp)
+      override << method
+    end
+
+    ##
+    # Lookup if the internal method could be overrided.
+    #
+    # @param [Symbol]
+    #   method you would like to lookup.
+    #
+    # @return [NilClass, Symbol, Regexp]
+    #   nil or the matched Symbol or Regexp
+    #
+    # @api public
+    def override? method
+      assert_kind_of('method', method, Symbol)
+      override.find{ |could_override|
+        case could_override
+          when Symbol; could_override == method
+          when Regexp; could_override =~ method.to_s
+        end
+      }
+    end
+
+    ##
     # Copy a set of records from one repository to another.
     #
     # @param [String] source
@@ -519,10 +567,14 @@ module DataMapper
     def resource_methods
       resource_methods = Set.new
 
-      ancestors.each do |mod|
-        next unless mod <= DataMapper::Resource
-        resource_methods.merge(mod.instance_methods(false).map { |method| method.to_s })
-      end
+      # reject self and descendants
+      # self is not included in descendants because
+      # method_added triggers first than inherited
+      ancestors[1..-1].reject{ |klass| Model.descendants.include?(klass) }.
+        each do |mod|
+          next unless mod <= DataMapper::Resource
+          resource_methods.merge(mod.instance_methods(false).map { |method| method.to_s })
+        end
 
       resource_methods
     end
@@ -548,6 +600,14 @@ module DataMapper
       else
         super
       end
+    end
+
+    # TODO: document
+    # @api private
+    def method_added method
+      raise ReservedError.new("#{method} is reserved for internal, use \#override!(#{method}) to force override") if
+        !override?(method) &&
+         resource_method_defined?(method.to_s)
     end
 
     # TODO: document
