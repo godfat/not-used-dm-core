@@ -210,19 +210,17 @@ module DataMapper
         instance_variable_name = property.instance_variable_name
         primitive              = property.primitive
 
-        unless resource_method_defined?(name)
-          class_eval <<-RUBY, __FILE__, __LINE__ + 1
-            #{reader_visibility}
-            def #{name}
-              return #{instance_variable_name} if defined?(#{instance_variable_name})
-              #{instance_variable_name} = properties[#{name.inspect}].get(self)
-            end
-          RUBY
-        end
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+          #{reader_visibility}
+          def #{name}
+            return #{instance_variable_name} if defined?(#{instance_variable_name})
+            #{instance_variable_name} = properties[#{name.inspect}].get(self)
+          end
+        RUBY
 
         boolean_reader_name = "#{name}?"
 
-        if primitive == TrueClass && !resource_method_defined?(boolean_reader_name)
+        if primitive == TrueClass
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             #{reader_visibility}
             alias #{boolean_reader_name} #{name}
@@ -238,8 +236,6 @@ module DataMapper
         writer_visibility = property.writer_visibility
 
         writer_name = "#{name}="
-
-        return if resource_method_defined?(writer_name)
 
         class_eval <<-RUBY, __FILE__, __LINE__ + 1
           #{writer_visibility}
